@@ -1,0 +1,106 @@
+@inherits LayoutComponentBase
+@using VolleyballDashboard.Infrastructure.Configuration
+@inject NavigationManager NavigationManager
+
+<div class="min-h-screen transition-colors duration-300">
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-50 glass-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-volt-500 to-court-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                            <path stroke-width="2" d="M12 2 C12 2 12 12 12 12 M12 12 C12 12 22 12 22 12 M12 12 C12 12 6 18 6 18"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold dark:text-white text-gray-900">Volleyball</h1>
+                        <p class="text-xs dark:text-gray-400 text-gray-500 font-mono tracking-wider">DASHBOARD</p>
+                    </div>
+                </div>
+
+                <!-- Theme Toggle - Using anchor tag with javascript: for reliable click handling -->
+                <a href="javascript:void(0)" 
+                   onclick="toggleTheme(); return false;"
+                   class="p-2.5 rounded-xl dark:bg-gray-800/50 bg-gray-100 dark:hover:bg-gray-700/50 hover:bg-gray-200 transition-all duration-200 group cursor-pointer">
+                    <!-- Sun icon (shown in dark mode) -->
+                    <svg class="w-5 h-5 text-yellow-400 group-hover:rotate-12 transition-transform hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                    </svg>
+                    <!-- Moon icon (shown in light mode) -->
+                    <svg class="w-5 h-5 text-slate-700 group-hover:-rotate-12 transition-transform block dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        
+        <!-- League Navigation Bar -->
+        <nav class="border-t dark:border-gray-700/50 border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center gap-1 h-12 overflow-x-auto scrollbar-hide">
+                    @foreach (var league in LeagueConfiguration.GetAllLeagues())
+                    {
+                        var isActive = IsLeagueActive(league.Id);
+                        <a href="/@league.Id" 
+                           class="@GetLeagueNavClass(isActive) flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200">
+                            <span class="text-base">@GetCountryFlag(league.Country)</span>
+                            <span>@league.Name</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        @Body
+    </main>
+
+    <!-- Footer -->
+    <footer class="dark:text-gray-500 text-gray-400 text-center py-6 text-sm font-mono">
+        <p>Powered by sportdb.dev • @DateTime.UtcNow.Year</p>
+    </footer>
+</div>
+
+@code {
+    private string GetCurrentLeagueId()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var path = uri.AbsolutePath.Trim('/');
+        return string.IsNullOrEmpty(path) ? LeagueConfiguration.DefaultLeagueId : path;
+    }
+
+    private bool IsLeagueActive(string leagueId)
+    {
+        return GetCurrentLeagueId().Equals(leagueId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetLeagueNavClass(bool isActive)
+    {
+        if (isActive)
+        {
+            return "dark:bg-volt-500/20 bg-volt-500/10 dark:text-volt-400 text-volt-600 border border-volt-500/30";
+        }
+        return "dark:text-gray-400 text-gray-600 dark:hover:bg-gray-800/50 hover:bg-gray-100 dark:hover:text-white hover:text-gray-900";
+    }
+
+    private string GetCountryFlag(string country)
+    {
+        return country switch
+        {
+            "Poland" => "🇵🇱",
+            "Italy" => "🇮🇹",
+            "Turkey" => "🇹🇷",
+            "Germany" => "🇩🇪",
+            "France" => "🇫🇷",
+            "Brazil" => "🇧🇷",
+            "Russia" => "🇷🇺",
+            "Japan" => "🇯🇵",
+            _ => "🏐"
+        };
+    }
+}

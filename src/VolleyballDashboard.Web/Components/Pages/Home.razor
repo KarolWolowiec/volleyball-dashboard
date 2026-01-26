@@ -1,0 +1,195 @@
+@page "/"
+@page "/{LeagueId}"
+@rendermode InteractiveServer
+@inject IDashboardService DashboardService
+@inject ILogger<Home> Logger
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@(_dashboardData?.League.Name ?? "Volleyball") Dashboard</PageTitle>
+
+@if (_isLoading)
+{
+    <LoadingSpinner />
+}
+else if (_error is not null)
+{
+    <ErrorDisplay Message="@_error" OnRetry="LoadDataAsync" />
+}
+else if (_dashboardData is not null)
+{
+    <!-- League Header -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-2xl">🇵🇱</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold dark:text-white text-gray-900">@_dashboardData.League.Name</h2>
+                </div>
+                <p class="dark:text-gray-400 text-gray-500 font-mono text-sm">
+                    @_dashboardData.League.Country • @_dashboardData.League.Season
+                </p>
+            </div>
+            <div class="flex items-center gap-2 text-sm dark:text-gray-400 text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="font-mono">Updated @ToUserLocalTime(_dashboardData.LastUpdated).ToString("HH:mm")</span>
+                <button @onclick="LoadDataAsync" class="ml-2 p-1.5 rounded-lg dark:hover:bg-gray-800 hover:bg-gray-100 transition-colors" title="Refresh">
+                    <svg class="w-4 h-4 @(_isRefreshing ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Matches (Live) -->
+    @if (_dashboardData.ActiveMatches.Count > 0)
+    {
+        <section class="mb-8">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <h3 class="text-lg font-semibold dark:text-white text-gray-900">Live Now</h3>
+                <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-xs font-mono">@_dashboardData.ActiveMatches.Count</span>
+            </div>
+            <div class="grid gap-4">
+                @foreach (var match in _dashboardData.ActiveMatches)
+                {
+                    <LiveMatchCard Match="match" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+                }
+            </div>
+        </section>
+    }
+
+    <!-- Main Grid -->
+    <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Standings -->
+        <section class="lg:col-span-2">
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                    <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-volt-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Standings
+                    </h3>
+                </div>
+                <StandingsTable Standings="_dashboardData.Standings" />
+            </div>
+        </section>
+
+        <!-- Right Column - Matches -->
+        <section class="space-y-6">
+            <!-- Upcoming Matches -->
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                    <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-court-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Upcoming
+                        <span class="ml-auto px-2 py-0.5 rounded-full dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-300 text-gray-600">@_dashboardData.UpcomingMatches.Count</span>
+                    </h3>
+                </div>
+                <MatchList Matches="_dashboardData.UpcomingMatches" EmptyMessage="No upcoming matches" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+            </div>
+
+            <!-- Previous Matches -->
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                    <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Recent Results
+                        <span class="ml-auto px-2 py-0.5 rounded-full dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-300 text-gray-600">@_dashboardData.PreviousMatches.Count</span>
+                    </h3>
+                </div>
+                <MatchList Matches="_dashboardData.PreviousMatches" ShowScores="true" EmptyMessage="No recent results" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? LeagueId { get; set; }
+
+    private DashboardData? _dashboardData;
+    private bool _isLoading = true;
+    private bool _isRefreshing;
+    private string? _error;
+    private System.Timers.Timer? _refreshTimer;
+    private int _timezoneOffsetMinutes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+        SetupAutoRefresh();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Get the browser's timezone offset (negative = ahead of UTC)
+            _timezoneOffsetMinutes = await JSRuntime.InvokeAsync<int>("getTimezoneOffset");
+            StateHasChanged();
+        }
+    }
+
+    private DateTimeOffset ToUserLocalTime(DateTimeOffset utcTime)
+    {
+        // JS getTimezoneOffset returns minutes behind UTC (negative for ahead)
+        // e.g., UTC+1 returns -60, UTC-5 returns 300
+        return utcTime.ToOffset(TimeSpan.FromMinutes(-_timezoneOffsetMinutes));
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            if (!_isLoading) _isRefreshing = true;
+            _error = null;
+
+            var leagueId = LeagueId ?? "plusliga";
+            _dashboardData = await DashboardService.GetDashboardDataAsync(leagueId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load dashboard data");
+            _error = "Failed to load data. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+            _isRefreshing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetupAutoRefresh()
+    {
+        _refreshTimer = new System.Timers.Timer(60000); // Refresh UI every minute
+        _refreshTimer.Elapsed += async (_, _) =>
+        {
+            if (_dashboardData?.ActiveMatches.Count > 0)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadDataAsync();
+                    StateHasChanged();
+                });
+            }
+        };
+        _refreshTimer.Start();
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}

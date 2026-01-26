@@ -1,0 +1,126 @@
+<div class="divide-y dark:divide-gray-700/30 divide-gray-100 max-h-96 overflow-y-auto">
+    @if (Matches.Count == 0)
+    {
+        <div class="py-8 text-center dark:text-gray-400 text-gray-500 text-sm">
+            @EmptyMessage
+        </div>
+    }
+    else
+    {
+        @foreach (var match in Matches)
+        {
+            <div class="px-4 py-3 dark:hover:bg-white/5 hover:bg-gray-50 transition-colors">
+                <!-- Date/Time -->
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs dark:text-gray-500 text-gray-400 font-mono">
+                        @FormatMatchDate(match.StartTime)
+                    </span>
+                    @if (!string.IsNullOrEmpty(match.Round))
+                    {
+                        <span class="text-xs dark:text-gray-500 text-gray-400">@match.Round</span>
+                    }
+                </div>
+                
+                <!-- Teams -->
+                <div class="space-y-1.5">
+                    <!-- Home Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            @if (!string.IsNullOrEmpty(match.HomeTeam.LogoUrl))
+                            {
+                                <img src="@match.HomeTeam.LogoUrl" alt="" class="w-5 h-5 object-contain flex-shrink-0" loading="lazy" />
+                            }
+                            <span class="text-sm dark:text-gray-200 text-gray-700 truncate @(ShowScores && match.Score is not null && match.Score.HomeScore > match.Score.AwayScore ? "font-semibold" : "")">
+                                @match.HomeTeam.Name
+                            </span>
+                        </div>
+                        @if (ShowScores && match.Score is not null)
+                        {
+                            <span class="text-sm font-mono font-bold ml-2 @(match.Score.HomeScore > match.Score.AwayScore ? "text-volt-500" : "dark:text-gray-400 text-gray-500")">
+                                @match.Score.HomeScore
+                            </span>
+                        }
+                    </div>
+                    
+                    <!-- Away Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            @if (!string.IsNullOrEmpty(match.AwayTeam.LogoUrl))
+                            {
+                                <img src="@match.AwayTeam.LogoUrl" alt="" class="w-5 h-5 object-contain flex-shrink-0" loading="lazy" />
+                            }
+                            <span class="text-sm dark:text-gray-200 text-gray-700 truncate @(ShowScores && match.Score is not null && match.Score.AwayScore > match.Score.HomeScore ? "font-semibold" : "")">
+                                @match.AwayTeam.Name
+                            </span>
+                        </div>
+                        @if (ShowScores && match.Score is not null)
+                        {
+                            <span class="text-sm font-mono font-bold ml-2 @(match.Score.AwayScore > match.Score.HomeScore ? "text-volt-500" : "dark:text-gray-400 text-gray-500")">
+                                @match.Score.AwayScore
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Set Scores -->
+                @if (ShowScores && match.SetScores is not null && match.SetScores.Count > 0)
+                {
+                    <div class="mt-2 flex gap-1 flex-wrap">
+                        @foreach (var set in match.SetScores)
+                        {
+                            <span class="px-1.5 py-0.5 rounded dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-400 text-gray-500">
+                                @set.HomeScore-@set.AwayScore
+                            </span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<Match> Matches { get; set; } = [];
+
+    [Parameter]
+    public bool ShowScores { get; set; }
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No matches";
+
+    [Parameter]
+    public int TimezoneOffsetMinutes { get; set; }
+
+    private DateTimeOffset ToUserLocalTime(DateTimeOffset utcTime)
+    {
+        // JS getTimezoneOffset returns minutes behind UTC (negative for ahead)
+        return utcTime.ToOffset(TimeSpan.FromMinutes(-TimezoneOffsetMinutes));
+    }
+
+    private string FormatMatchDate(DateTimeOffset date)
+    {
+        var local = ToUserLocalTime(date);
+        var now = ToUserLocalTime(DateTimeOffset.UtcNow);
+        var diff = date - DateTimeOffset.UtcNow;
+
+        if (ShowScores)
+        {
+            // For past matches, show relative time
+            if (local.Date == now.Date)
+                return "Today";
+            if (local.Date == now.Date.AddDays(-1))
+                return "Yesterday";
+            return local.ToString("MMM d");
+        }
+        else
+        {
+            // For upcoming matches
+            if (local.Date == now.Date)
+                return $"Today {local:HH:mm}";
+            if (local.Date == now.Date.AddDays(1))
+                return $"Tomorrow {local:HH:mm}";
+            return local.ToString("MMM d HH:mm");
+        }
+    }
+}
