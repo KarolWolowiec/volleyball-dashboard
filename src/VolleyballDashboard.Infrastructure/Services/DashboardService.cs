@@ -11,6 +11,7 @@ public class DashboardService : IDashboardService
     private readonly IVolleyballApiClient _apiClient;
     private readonly ICacheService _cacheService;
     private readonly IMatchSchedulerService _matchScheduler;
+    private readonly ITeamLogoCache _logoCache;
     private readonly ILogger<DashboardService> _logger;
     private readonly CacheSettings _cacheSettings;
 
@@ -23,12 +24,14 @@ public class DashboardService : IDashboardService
         IVolleyballApiClient apiClient,
         ICacheService cacheService,
         IMatchSchedulerService matchScheduler,
+        ITeamLogoCache logoCache,
         IOptions<CacheSettings> cacheSettings,
         ILogger<DashboardService> logger)
     {
         _apiClient = apiClient;
         _cacheService = cacheService;
         _matchScheduler = matchScheduler;
+        _logoCache = logoCache;
         _logger = logger;
         _cacheSettings = cacheSettings.Value;
     }
@@ -39,17 +42,21 @@ public class DashboardService : IDashboardService
         if (league is null)
             throw new ArgumentException($"League not found: {leagueId}", nameof(leagueId));
 
-        var standingsTask = GetStandingsInternalAsync(leagueId, cancellationToken);
+        // Fetch fixtures first to populate the logo cache (logos come from fixtures endpoint)
         var upcomingTask = GetUpcomingMatchesInternalAsync(leagueId, cancellationToken);
         var previousTask = GetPreviousMatchesInternalAsync(leagueId, cancellationToken);
         var activeTask = GetActiveMatchesInternalAsync(leagueId, cancellationToken);
 
-        await Task.WhenAll(standingsTask, upcomingTask, previousTask, activeTask);
+        // Wait for fixtures to complete first so logo cache is populated
+        await Task.WhenAll(upcomingTask, previousTask, activeTask);
+
+        // Now fetch standings - they will use the populated logo cache
+        var standings = await GetStandingsInternalAsync(leagueId, cancellationToken);
 
         return new DashboardData
         {
             League = league,
-            Standings = await standingsTask,
+            Standings = standings,
             UpcomingMatches = await upcomingTask,
             PreviousMatches = await previousTask,
             ActiveMatches = await activeTask,
@@ -131,11 +138,32 @@ public class DashboardService : IDashboardService
         var league = GetLeague(leagueId)!;
         var cacheKey = string.Format(StandingsCacheKey, leagueId);
         
-        return await _cacheService.GetOrSetAsync(
+        var standings = await _cacheService.GetOrSetAsync(
             cacheKey,
             () => _apiClient.GetStandingsAsync(league, cancellationToken),
             TimeSpan.FromMinutes(_cacheSettings.StandingsCacheMinutes),
             cancellationToken);
+
+        // Enrich standings with logos from cache (in case cached standings are missing logos)
+        return standings.Select(s => EnrichStandingWithLogo(s)).ToList();
+    }
+
+    private Standing EnrichStandingWithLogo(Standing standing)
+    {
+        // If team already has a logo, return as-is
+        if (!string.IsNullOrEmpty(standing.Team.LogoUrl))
+            return standing;
+
+        // Try to get logo from cache
+        var logoUrl = _logoCache.GetLogo(standing.Team.Id);
+        if (string.IsNullOrEmpty(logoUrl))
+            return standing;
+
+        // Create new standing with enriched team
+        return standing with
+        {
+            Team = standing.Team with { LogoUrl = logoUrl }
+        };
     }
 
     private async Task<List<Match>> GetUpcomingMatchesInternalAsync(string leagueId, CancellationToken cancellationToken)

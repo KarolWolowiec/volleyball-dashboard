@@ -10,4 +10,8 @@
     <ProjectReference Include="..\VolleyballDashboard.Infrastructure\VolleyballDashboard.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,21 @@
+using DotNetEnv;
 using VolleyballDashboard.Infrastructure;
 using VolleyballDashboard.Web.Components;
 
+// Load .env file from solution root
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Map environment variables to configuration
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("API_KEY")))
+{
+    builder.Configuration["ApiSettings:ApiKey"] = Environment.GetEnvironmentVariable("API_KEY");
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

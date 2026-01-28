@@ -22,7 +22,7 @@ else if (_dashboardData is not null)
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <div class="flex items-center gap-2 mb-1">
-                    <span class="text-2xl">🇵🇱</span>
+                    <span class="text-2xl">@GetCountryFlag(_dashboardData.League.Country)</span>
                     <h2 class="text-2xl sm:text-3xl font-bold dark:text-white text-gray-900">@_dashboardData.League.Name</h2>
                 </div>
                 <p class="dark:text-gray-400 text-gray-500 font-mono text-sm">
@@ -191,5 +191,21 @@ else if (_dashboardData is not null)
     public void Dispose()
     {
         _refreshTimer?.Dispose();
+    }
+
+    private static string GetCountryFlag(string country)
+    {
+        return country.ToLowerInvariant() switch
+        {
+            "italy" => "🇮🇹",
+            "poland" => "🇵🇱",
+            "france" => "🇫🇷",
+            "germany" => "🇩🇪",
+            "turkey" => "🇹🇷",
+            "russia" => "🇷🇺",
+            "brazil" => "🇧🇷",
+            "japan" => "🇯🇵",
+            _ => "🏐"
+        };
     }
 }
