@@ -2,47 +2,59 @@
     <table class="w-full">
         <thead>
             <tr class="text-xs uppercase tracking-wider dark:text-gray-400 text-gray-500 border-b dark:border-gray-700/50 border-gray-200">
-                <th class="py-3 px-4 text-left font-medium">#</th>
-                <th class="py-3 px-4 text-left font-medium">Team</th>
-                <th class="py-3 px-2 text-center font-medium hidden sm:table-cell">GP</th>
-                <th class="py-3 px-2 text-center font-medium">W</th>
-                <th class="py-3 px-2 text-center font-medium">L</th>
-                <th class="py-3 px-2 text-center font-medium hidden sm:table-cell">Sets</th>
-                <th class="py-3 px-4 text-center font-medium">PTS</th>
+                <th class="@(Compact ? "py-2 px-2" : "py-3 px-4") text-left font-medium">#</th>
+                <th class="@(Compact ? "py-2 px-2" : "py-3 px-4") text-left font-medium">Team</th>
+                @if (!Compact)
+                {
+                    <th class="py-3 px-2 text-center font-medium hidden sm:table-cell">GP</th>
+                }
+                <th class="@(Compact ? "py-2 px-1" : "py-3 px-2") text-center font-medium">W</th>
+                <th class="@(Compact ? "py-2 px-1" : "py-3 px-2") text-center font-medium">L</th>
+                @if (!Compact)
+                {
+                    <th class="py-3 px-2 text-center font-medium hidden sm:table-cell">Sets</th>
+                }
+                <th class="@(Compact ? "py-2 px-2" : "py-3 px-4") text-center font-medium">PTS</th>
             </tr>
         </thead>
         <tbody class="divide-y dark:divide-gray-700/30 divide-gray-100">
             @foreach (var standing in Standings)
             {
                 <tr class="dark:hover:bg-white/5 hover:bg-gray-50 transition-colors">
-                    <td class="py-3 px-4">
-                        <div class="flex items-center justify-center w-7 h-7 rounded-lg font-mono text-sm font-semibold @GetRankStyle(standing)">
+                    <td class="@(Compact ? "py-2 px-2" : "py-3 px-4")">
+                        <div class="flex items-center justify-center @(Compact ? "w-6 h-6 text-xs" : "w-7 h-7 text-sm") rounded-lg font-mono font-semibold @GetRankStyle(standing)">
                             @standing.Rank
                         </div>
                     </td>
-                    <td class="py-3 px-4">
+                    <td class="@(Compact ? "py-2 px-2" : "py-3 px-4")">
                         <div class="flex items-center gap-2">
                             @if (!string.IsNullOrEmpty(standing.Team.LogoUrl))
                             {
-                                <img src="@standing.Team.LogoUrl" alt="" class="w-6 h-6 object-contain flex-shrink-0" loading="lazy" />
+                                <img src="@standing.Team.LogoUrl" alt="" class="@(Compact ? "w-5 h-5" : "w-6 h-6") object-contain flex-shrink-0" loading="lazy" />
                             }
-                            <span class="font-medium dark:text-white text-gray-900 text-sm">@standing.Team.Name</span>
+                            <span class="font-medium dark:text-white text-gray-900 @(Compact ? "text-xs truncate max-w-[120px]" : "text-sm")">@standing.Team.Name</span>
                         </div>
                     </td>
-                    <td class="py-3 px-2 text-center dark:text-gray-300 text-gray-600 text-sm font-mono hidden sm:table-cell">
-                        @standing.Matches
-                    </td>
-                    <td class="py-3 px-2 text-center text-volt-500 text-sm font-mono font-medium">
+                    @if (!Compact)
+                    {
+                        <td class="py-3 px-2 text-center dark:text-gray-300 text-gray-600 text-sm font-mono hidden sm:table-cell">
+                            @standing.Matches
+                        </td>
+                    }
+                    <td class="@(Compact ? "py-2 px-1 text-xs" : "py-3 px-2 text-sm") text-center text-volt-500 font-mono font-medium">
                         @standing.Wins
                     </td>
-                    <td class="py-3 px-2 text-center text-red-400 text-sm font-mono font-medium">
+                    <td class="@(Compact ? "py-2 px-1 text-xs" : "py-3 px-2 text-sm") text-center text-red-400 font-mono font-medium">
                         @standing.Losses
                     </td>
-                    <td class="py-3 px-2 text-center dark:text-gray-400 text-gray-500 text-sm font-mono hidden sm:table-cell">
-                        @standing.SetsRatio
-                    </td>
-                    <td class="py-3 px-4 text-center">
-                        <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-lg dark:bg-volt-500/10 bg-volt-50 text-volt-500 font-mono font-bold text-sm">
+                    @if (!Compact)
+                    {
+                        <td class="py-3 px-2 text-center dark:text-gray-400 text-gray-500 text-sm font-mono hidden sm:table-cell">
+                            @standing.SetsRatio
+                        </td>
+                    }
+                    <td class="@(Compact ? "py-2 px-2" : "py-3 px-4") text-center">
+                        <span class="inline-flex items-center justify-center @(Compact ? "min-w-[2rem] px-1.5 py-0.5 text-xs" : "min-w-[2.5rem] px-2 py-1 text-sm") rounded-lg dark:bg-volt-500/10 bg-volt-50 text-volt-500 font-mono font-bold">
                             @standing.Points
                         </span>
                     </td>
@@ -54,7 +66,7 @@
 
 @if (Standings.Count == 0)
 {
-    <div class="py-12 text-center dark:text-gray-400 text-gray-500">
+    <div class="@(Compact ? "py-6" : "py-12") text-center dark:text-gray-400 text-gray-500">
         No standings data available
     </div>
 }
@@ -62,6 +74,9 @@
 @code {
     [Parameter]
     public List<Standing> Standings { get; set; } = [];
+
+    [Parameter]
+    public bool Compact { get; set; }
 
     private string GetRankStyle(Standing standing)
     {

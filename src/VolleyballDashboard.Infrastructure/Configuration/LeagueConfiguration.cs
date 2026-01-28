@@ -29,6 +29,20 @@ public static class LeagueConfiguration
             FixturesEndpoint = "/api/flashscore/volleyball/italy:98/superlega:nm8RF0ON/2025-2026/fixtures",
             ResultsEndpoint = "/api/flashscore/volleyball/italy:98/superlega:nm8RF0ON/2025-2026/results",
             LiveEndpoint = "/api/flashscore/volleyball/italy:98/superlega:nm8RF0ON/live"
+        },
+        ["champions-league"] = new League
+        {
+            Id = "champions-league",
+            Name = "Champions League",
+            Country = "Europe",
+            CountryCode = "6",
+            Season = "2025-2026",
+            Type = LeagueType.GroupStage,
+            LogoUrl = "https://static.flashscore.com/res/image/data/ABhOz9kd-MieDg7kM.png",
+            StandingsEndpoint = "/api/flashscore/volleyball/europe:6/champions-league:6ecm9Xlr/2025-2026/standings",
+            FixturesEndpoint = "/api/flashscore/volleyball/europe:6/champions-league:6ecm9Xlr/2025-2026/fixtures",
+            ResultsEndpoint = "/api/flashscore/volleyball/europe:6/champions-league:6ecm9Xlr/2025-2026/results",
+            LiveEndpoint = "/api/flashscore/volleyball/europe:6/champions-league:6ecm9Xlr/live"
         }
     };
 

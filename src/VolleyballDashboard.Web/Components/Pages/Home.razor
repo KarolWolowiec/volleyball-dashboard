@@ -64,25 +64,36 @@ else if (_dashboardData is not null)
         </section>
     }
 
-    <!-- Main Grid -->
-    <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Standings -->
-        <section class="lg:col-span-2">
-            <div class="glass-card rounded-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
-                    <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-volt-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        Standings
-                    </h3>
+    @if (_dashboardData.League.Type == LeagueType.GroupStage)
+    {
+        <!-- Group Stage Layout -->
+        <!-- Playoff Bracket (shown first as it's more important) -->
+        @if (_dashboardData.PlayoffMatches is not null && _dashboardData.PlayoffMatches.Count > 0)
+        {
+            <section class="mb-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                    </svg>
+                    <h3 class="text-lg font-semibold dark:text-white text-gray-900">Playoff Bracket</h3>
                 </div>
-                <StandingsTable Standings="_dashboardData.Standings" />
+                <PlayoffBracket Matches="_dashboardData.PlayoffMatches" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+            </section>
+        }
+
+        <!-- Group Standings -->
+        <section class="mb-6">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-volt-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                <h3 class="text-lg font-semibold dark:text-white text-gray-900">Group Standings</h3>
             </div>
+            <GroupStandingsDisplay Groups="_dashboardData.GroupedStandings ?? []" />
         </section>
 
-        <!-- Right Column - Matches -->
-        <section class="space-y-6">
+        <!-- Matches Grid -->
+        <div class="grid md:grid-cols-2 gap-6">
             <!-- Upcoming Matches -->
             <div class="glass-card rounded-2xl overflow-hidden">
                 <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
@@ -110,8 +121,59 @@ else if (_dashboardData is not null)
                 </div>
                 <MatchList Matches="_dashboardData.PreviousMatches" ShowScores="true" EmptyMessage="No recent results" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
             </div>
-        </section>
-    </div>
+        </div>
+    }
+    else
+    {
+        <!-- Standard League Layout -->
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Standings -->
+            <section class="lg:col-span-2">
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                        <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-volt-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Standings
+                        </h3>
+                    </div>
+                    <StandingsTable Standings="_dashboardData.Standings" />
+                </div>
+            </section>
+
+            <!-- Right Column - Matches -->
+            <section class="space-y-6">
+                <!-- Upcoming Matches -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                        <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-court-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Upcoming
+                            <span class="ml-auto px-2 py-0.5 rounded-full dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-300 text-gray-600">@_dashboardData.UpcomingMatches.Count</span>
+                        </h3>
+                    </div>
+                    <MatchList Matches="_dashboardData.UpcomingMatches" EmptyMessage="No upcoming matches" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+                </div>
+
+                <!-- Previous Matches -->
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="px-5 py-4 border-b dark:border-gray-700/50 border-gray-200">
+                        <h3 class="font-semibold dark:text-white text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Recent Results
+                            <span class="ml-auto px-2 py-0.5 rounded-full dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-300 text-gray-600">@_dashboardData.PreviousMatches.Count</span>
+                        </h3>
+                    </div>
+                    <MatchList Matches="_dashboardData.PreviousMatches" ShowScores="true" EmptyMessage="No recent results" TimezoneOffsetMinutes="_timezoneOffsetMinutes" />
+                </div>
+            </section>
+        </div>
+    }
 }
 
 @code {
@@ -205,6 +267,7 @@ else if (_dashboardData is not null)
             "russia" => "🇷🇺",
             "brazil" => "🇧🇷",
             "japan" => "🇯🇵",
+            "europe" => "🏆",
             _ => "🏐"
         };
     }

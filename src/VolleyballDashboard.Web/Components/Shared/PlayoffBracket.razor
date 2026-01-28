@@ -1,0 +1,183 @@
+@* Playoff Bracket Display Component *@
+
+<div class="space-y-6">
+    @foreach (var round in GetRoundsInOrder())
+    {
+        var matchesInRound = Matches.Where(m => m.Round == round).ToList();
+        if (matchesInRound.Count > 0)
+        {
+            <div class="glass-card rounded-xl overflow-hidden">
+                <div class="px-4 py-3 border-b dark:border-gray-700/50 border-gray-200 dark:bg-gray-800/50 bg-gray-50">
+                    <h4 class="font-semibold dark:text-white text-gray-900 text-sm flex items-center gap-2">
+                        @GetRoundIcon(round)
+                        <span>@round</span>
+                        <span class="ml-auto px-2 py-0.5 rounded-full dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-300 text-gray-600">@matchesInRound.Count</span>
+                    </h4>
+                </div>
+                <div class="divide-y dark:divide-gray-700/30 divide-gray-100">
+                    @foreach (var match in matchesInRound.OrderByDescending(m => m.StartTime))
+                    {
+                        <div class="p-4 dark:hover:bg-white/5 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs dark:text-gray-500 text-gray-400 font-mono">
+                                    @FormatMatchDate(match.StartTime)
+                                </span>
+                                @if (match.Status == MatchStatus.Finished)
+                                {
+                                    <span class="px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-400 text-xs">Finished</span>
+                                }
+                                else if (match.Status == MatchStatus.Live)
+                                {
+                                    <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-xs animate-pulse">Live</span>
+                                }
+                                else
+                                {
+                                    <span class="px-2 py-0.5 rounded-full bg-court-500/10 text-court-500 text-xs">Upcoming</span>
+                                }
+                            </div>
+                            
+                            <div class="flex items-center gap-4">
+                                <!-- Home Team -->
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 @(IsWinner(match, true) ? "" : "opacity-60")">
+                                        @if (!string.IsNullOrEmpty(match.HomeTeam.LogoUrl))
+                                        {
+                                            <img src="@match.HomeTeam.LogoUrl" alt="" class="w-8 h-8 object-contain" loading="lazy" />
+                                        }
+                                        <div class="min-w-0">
+                                            <span class="font-medium dark:text-white text-gray-900 text-sm block truncate @(IsWinner(match, true) ? "font-bold" : "")">
+                                                @match.HomeTeam.Name
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Score -->
+                                <div class="flex-shrink-0 text-center min-w-[80px]">
+                                    @if (match.Score is not null)
+                                    {
+                                        <div class="flex items-center justify-center gap-2">
+                                            <span class="text-xl font-bold font-mono @(IsWinner(match, true) ? "text-volt-500" : "dark:text-gray-400 text-gray-500")">
+                                                @match.Score.HomeScore
+                                            </span>
+                                            <span class="text-gray-500">-</span>
+                                            <span class="text-xl font-bold font-mono @(IsWinner(match, false) ? "text-volt-500" : "dark:text-gray-400 text-gray-500")">
+                                                @match.Score.AwayScore
+                                            </span>
+                                        </div>
+                                        @if (match.SetScores is not null && match.SetScores.Count > 0)
+                                        {
+                                            <div class="flex gap-1 justify-center mt-1">
+                                                @foreach (var set in match.SetScores)
+                                                {
+                                                    <span class="px-1.5 py-0.5 rounded dark:bg-gray-700/50 bg-gray-100 text-xs font-mono dark:text-gray-400 text-gray-500">
+                                                        @set.HomeScore-@set.AwayScore
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-sm dark:text-gray-500 text-gray-400">vs</span>
+                                    }
+                                </div>
+
+                                <!-- Away Team -->
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-end gap-2 @(IsWinner(match, false) ? "" : "opacity-60")">
+                                        <div class="min-w-0 text-right">
+                                            <span class="font-medium dark:text-white text-gray-900 text-sm block truncate @(IsWinner(match, false) ? "font-bold" : "")">
+                                                @match.AwayTeam.Name
+                                            </span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(match.AwayTeam.LogoUrl))
+                                        {
+                                            <img src="@match.AwayTeam.LogoUrl" alt="" class="w-8 h-8 object-contain" loading="lazy" />
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (Matches.Count == 0)
+{
+    <div class="py-12 text-center dark:text-gray-400 text-gray-500">
+        No playoff matches available
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<Match> Matches { get; set; } = [];
+
+    [Parameter]
+    public int TimezoneOffsetMinutes { get; set; }
+
+    private static readonly string[] RoundOrder = 
+    {
+        "Final",
+        "3rd place",
+        "Semi-finals",
+        "Quarter-finals",
+        "1/8-finals"
+    };
+
+    private IEnumerable<string> GetRoundsInOrder()
+    {
+        var roundsInMatches = Matches.Select(m => m.Round).Distinct().ToList();
+        
+        // Return rounds in the predefined order, filtering to only those present
+        foreach (var round in RoundOrder)
+        {
+            if (roundsInMatches.Contains(round))
+                yield return round;
+        }
+        
+        // Add any rounds not in our predefined order
+        foreach (var round in roundsInMatches.Where(r => !RoundOrder.Contains(r)))
+        {
+            if (!string.IsNullOrEmpty(round))
+                yield return round;
+        }
+    }
+
+    private bool IsWinner(Match match, bool isHome)
+    {
+        if (match.Score is null || match.Status != MatchStatus.Finished)
+            return true; // Don't dim if no score yet
+        
+        return isHome 
+            ? match.Score.HomeScore > match.Score.AwayScore 
+            : match.Score.AwayScore > match.Score.HomeScore;
+    }
+
+    private MarkupString GetRoundIcon(string round)
+    {
+        var icon = round switch
+        {
+            "Final" => "<svg class=\"w-4 h-4 text-yellow-500\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z\"/></svg>",
+            "3rd place" => "<svg class=\"w-4 h-4 text-amber-600\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z\"/></svg>",
+            "Semi-finals" => "<svg class=\"w-4 h-4 text-court-500\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M13 10V3L4 14h7v7l9-11h-7z\"/></svg>",
+            _ => "<svg class=\"w-4 h-4 text-gray-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z\"/></svg>"
+        };
+        return new MarkupString(icon);
+    }
+
+    private DateTimeOffset ToUserLocalTime(DateTimeOffset utcTime)
+    {
+        return utcTime.ToOffset(TimeSpan.FromMinutes(-TimezoneOffsetMinutes));
+    }
+
+    private string FormatMatchDate(DateTimeOffset date)
+    {
+        var local = ToUserLocalTime(date);
+        return local.ToString("MMM d, HH:mm");
+    }
+}

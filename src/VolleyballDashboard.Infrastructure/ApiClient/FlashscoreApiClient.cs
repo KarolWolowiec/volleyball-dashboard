@@ -50,6 +50,33 @@ public class FlashscoreApiClient : IVolleyballApiClient
         }
     }
 
+    public async Task<List<GroupStanding>> GetGroupedStandingsAsync(League league, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching grouped standings from {Url}", league.StandingsEndpoint);
+            
+            var response = await _httpClient.GetFromJsonAsync<List<GroupStandingResponseDto>>(league.StandingsEndpoint, cancellationToken);
+            
+            if (response is null)
+            {
+                _logger.LogWarning("No grouped standings data received");
+                return [];
+            }
+
+            return response.Select(group => new GroupStanding
+            {
+                GroupName = group.RoundType,
+                Standings = group.Teams.Select(dto => MapToStandingWithLogo(dto, _logoCache)).ToList()
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching grouped standings for {LeagueId}", league.Id);
+            throw;
+        }
+    }
+
     public async Task<List<Match>> GetFixturesAsync(League league, CancellationToken cancellationToken = default)
     {
         try

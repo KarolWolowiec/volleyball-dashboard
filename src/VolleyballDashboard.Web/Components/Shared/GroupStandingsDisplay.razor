@@ -1,0 +1,23 @@
+<div class="grid md:grid-cols-2 gap-4">
+    @foreach (var group in Groups)
+    {
+        <div class="glass-card rounded-xl overflow-hidden">
+            <div class="px-4 py-3 border-b dark:border-gray-700/50 border-gray-200 dark:bg-gray-800/50 bg-gray-50">
+                <h4 class="font-semibold dark:text-white text-gray-900 text-sm">@group.GroupName</h4>
+            </div>
+            <StandingsTable Standings="group.Standings" Compact="true" />
+        </div>
+    }
+</div>
+
+@if (Groups.Count == 0)
+{
+    <div class="py-12 text-center dark:text-gray-400 text-gray-500">
+        No group standings available
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<GroupStanding> Groups { get; set; } = [];
+}

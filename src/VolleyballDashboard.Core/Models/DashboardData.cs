@@ -4,6 +4,8 @@ public record DashboardData
 {
     public required League League { get; init; }
     public required List<Standing> Standings { get; init; }
+    public List<GroupStanding>? GroupedStandings { get; init; }
+    public List<Match>? PlayoffMatches { get; init; }
     public required List<Match> UpcomingMatches { get; init; }
     public required List<Match> ActiveMatches { get; init; }
     public required List<Match> PreviousMatches { get; init; }

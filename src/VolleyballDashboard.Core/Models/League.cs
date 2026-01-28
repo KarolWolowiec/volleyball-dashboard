@@ -1,5 +1,11 @@
 namespace VolleyballDashboard.Core.Models;
 
+public enum LeagueType
+{
+    Standard,
+    GroupStage
+}
+
 public record League
 {
     public required string Id { get; init; }
@@ -11,4 +17,6 @@ public record League
     public required string FixturesEndpoint { get; init; }
     public required string ResultsEndpoint { get; init; }
     public required string LiveEndpoint { get; init; }
+    public LeagueType Type { get; init; } = LeagueType.Standard;
+    public string? LogoUrl { get; init; }
 }

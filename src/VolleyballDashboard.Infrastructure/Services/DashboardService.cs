@@ -16,6 +16,7 @@ public class DashboardService : IDashboardService
     private readonly CacheSettings _cacheSettings;
 
     private const string StandingsCacheKey = "standings:{0}";
+    private const string GroupedStandingsCacheKey = "grouped-standings:{0}";
     private const string UpcomingMatchesCacheKey = "upcoming:{0}";
     private const string PreviousMatchesCacheKey = "previous:{0}";
     private const string ActiveMatchesCacheKey = "active:{0}";
@@ -50,13 +51,28 @@ public class DashboardService : IDashboardService
         // Wait for fixtures to complete first so logo cache is populated
         await Task.WhenAll(upcomingTask, previousTask, activeTask);
 
-        // Now fetch standings - they will use the populated logo cache
-        var standings = await GetStandingsInternalAsync(leagueId, cancellationToken);
+        // Fetch standings based on league type
+        List<Standing> standings = [];
+        List<GroupStanding>? groupedStandings = null;
+        List<Match>? playoffMatches = null;
+
+        if (league.Type == LeagueType.GroupStage)
+        {
+            groupedStandings = await GetGroupedStandingsInternalAsync(leagueId, cancellationToken);
+            // TODO: Fetch real playoff matches when available from API
+            // playoffMatches = await GetPlayoffMatchesAsync(leagueId, cancellationToken);
+        }
+        else
+        {
+            standings = await GetStandingsInternalAsync(leagueId, cancellationToken);
+        }
 
         return new DashboardData
         {
             League = league,
             Standings = standings,
+            GroupedStandings = groupedStandings,
+            PlayoffMatches = playoffMatches,
             UpcomingMatches = await upcomingTask,
             PreviousMatches = await previousTask,
             ActiveMatches = await activeTask,
@@ -69,12 +85,24 @@ public class DashboardService : IDashboardService
         var league = GetLeague(leagueId);
         if (league is null) return;
 
-        var cacheKey = string.Format(StandingsCacheKey, leagueId);
-        await _cacheService.RemoveAsync(cacheKey, cancellationToken);
-        
-        var standings = await _apiClient.GetStandingsAsync(league, cancellationToken);
-        await _cacheService.SetAsync(cacheKey, standings, 
-            TimeSpan.FromMinutes(_cacheSettings.StandingsCacheMinutes), cancellationToken);
+        if (league.Type == LeagueType.GroupStage)
+        {
+            var groupedCacheKey = string.Format(GroupedStandingsCacheKey, leagueId);
+            await _cacheService.RemoveAsync(groupedCacheKey, cancellationToken);
+            
+            var groupedStandings = await _apiClient.GetGroupedStandingsAsync(league, cancellationToken);
+            await _cacheService.SetAsync(groupedCacheKey, groupedStandings, 
+                TimeSpan.FromMinutes(_cacheSettings.StandingsCacheMinutes), cancellationToken);
+        }
+        else
+        {
+            var cacheKey = string.Format(StandingsCacheKey, leagueId);
+            await _cacheService.RemoveAsync(cacheKey, cancellationToken);
+            
+            var standings = await _apiClient.GetStandingsAsync(league, cancellationToken);
+            await _cacheService.SetAsync(cacheKey, standings, 
+                TimeSpan.FromMinutes(_cacheSettings.StandingsCacheMinutes), cancellationToken);
+        }
         
         _logger.LogInformation("Refreshed standings for {LeagueId}", leagueId);
     }
@@ -146,6 +174,25 @@ public class DashboardService : IDashboardService
 
         // Enrich standings with logos from cache (in case cached standings are missing logos)
         return standings.Select(s => EnrichStandingWithLogo(s)).ToList();
+    }
+
+    private async Task<List<GroupStanding>> GetGroupedStandingsInternalAsync(string leagueId, CancellationToken cancellationToken)
+    {
+        var league = GetLeague(leagueId)!;
+        var cacheKey = string.Format(GroupedStandingsCacheKey, leagueId);
+        
+        var groupedStandings = await _cacheService.GetOrSetAsync(
+            cacheKey,
+            () => _apiClient.GetGroupedStandingsAsync(league, cancellationToken),
+            TimeSpan.FromMinutes(_cacheSettings.StandingsCacheMinutes),
+            cancellationToken);
+
+        // Enrich standings with logos from cache
+        return groupedStandings.Select(group => new GroupStanding
+        {
+            GroupName = group.GroupName,
+            Standings = group.Standings.Select(s => EnrichStandingWithLogo(s)).ToList()
+        }).ToList();
     }
 
     private Standing EnrichStandingWithLogo(Standing standing)
